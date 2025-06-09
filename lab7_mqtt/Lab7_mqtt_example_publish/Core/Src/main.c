@@ -203,31 +203,31 @@ void taskDHT11(void *pvParm)
 		char led[10];
     while (1)
     {
+				printf("DHT11 Task\n");
         if (DHT11GetData(&dht11DATA.Humi, &dht11DATA.Temp) == 0)
         {
 						printf("Get DHT11 Data successfully\n");
            //xQueueSend(queueDHT11, &dht11DATA, NULL);
-					  snprintf(temp, sizeof(temp), "%.2f", dht11DATA.Temp);
-						snprintf(humi, sizeof(humi), "%.2f", dht11DATA.Humi);
-						
-						mqtt_publish(mqttClient, "Lab7/Temp", temp, strlen(temp), 0, 0, NULL, NULL);
-						mqtt_publish(mqttClient, "Lab7/Humi", humi, strlen(humi), 0, 0, NULL, NULL);
-						if (dht11DATA.Humi >= 60.0)
-						{
-							snprintf(led, sizeof(led), "On");
-							mqtt_publish(mqttClient, "Lab7/LED", led, strlen(led), 0, 0, NULL, NULL);
-						}
-						else
-						{
-							snprintf(led, sizeof(led), "Off");
-							mqtt_publish(mqttClient, "Lab7/LED", led, strlen(led), 0, 0, NULL, NULL);
-						}
         }
 
         vTaskDelay(3000);
     }
 }
 
+void taskTest(void *pvParm)
+{
+	while(1) {
+		printf("In Test\r\n");
+		vTaskDelay(1000);
+	}
+}
+void taskTest2(void *pvParm){
+
+	while(1){
+		printf("In test2\r\n");
+		vTaskDelay(1000 / portTICK_RATE_MS);
+	}
+}
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   static uint8_t mode = 0;
 
@@ -277,10 +277,12 @@ int main(void)
   xSemMqttReconnect = xSemaphoreCreateBinary();
   queueSwitch = xQueueCreate(3, sizeof(uint8_t));
   
-  xTaskCreate(taskMQTT, "MQTT init", 1024, NULL, 4, &handleMQTT);
-  xTaskCreate(taskControll, "Control switch", 256, NULL, 2, &handleControl);
-  xTaskCreate(taskPublish, "Publish", 256, NULL, 1, &handlePublish);
-  xTaskCreate(taskDHT11, "DHT", 256, NULL, 3, &handleDHT11);
+  //xTaskCreate(taskMQTT, "MQTT init", 1024, NULL, 4, &handleMQTT);
+  //xTaskCreate(taskControll, "Control switch", 256, NULL, 2, &handleControl);
+  //xTaskCreate(taskPublish, "Publish", 256, NULL, 1, &handlePublish);
+	//xTaskCreate(taskDHT11, "DHT", 256, NULL, 4, &handleDHT11);
+	xTaskCreate(taskTest, "Test", 256, NULL, 3, NULL);
+	xTaskCreate(taskTest2, "Test2", 256, NULL, 4, NULL);
 
   printf("A_StartScheduler \r\n");
 	vTaskStartScheduler();

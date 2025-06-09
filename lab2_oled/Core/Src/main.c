@@ -251,6 +251,13 @@ void taskDHT11(void *pvParm)
     }
 }
 
+void taskTest(void *pvParm) 
+{
+	while(1) {
+		printf("In Test\r\n");
+		vTaskDelay(1000);
+	}
+}
 /****
 sw1, 2 -> rising edge
 sw3, 4 -> falling edge
@@ -310,58 +317,60 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
  */
 int main(void)
 {
-    /* USER CODE BEGIN 1 */
+  /* USER CODE BEGIN 1 */
 
-    /* USER CODE END 1 */
+  /* USER CODE END 1 */
 
-    /* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-    /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-    HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-    /* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-    /* USER CODE END Init */
+  /* USER CODE END Init */
 
-    /* Configure the system clock */
-    SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-    /* USER CODE BEGIN SysInit */
+  /* USER CODE BEGIN SysInit */
 
-    /* USER CODE END SysInit */
+  /* USER CODE END SysInit */
 
-    /* Initialize all configured peripherals */
-    MX_GPIO_Init();
-    MX_I2C1_Init();
-    MX_USART3_UART_Init();
-    MX_TIM2_Init();
-    /* USER CODE BEGIN 2 */
-    queueSwitch = xQueueCreate(3, sizeof(uint8_t));
-    queueDHT11 = xQueueCreate(3, sizeof(dht11DATA));
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_TIM2_Init();
+  MX_USART3_UART_Init();
+  /* USER CODE BEGIN 2 */
+	//LCD_Init();
+	//LCD_CS_Clr();
+	//LCD_Address_Set(0,0,240,240);
+	//queueMode = xQueueCreate(3, sizeof(uint8_t));
+	//xTaskCreate(taskST7789, "LCD Display", 2048, NULL, 5, &handleST7789);
+	xTaskCreate(taskTest, "Test", 2048, NULL, 4, NULL);
+	xTaskCreate(taskDHT11, "DHT11", 2048, NULL, 5, &handleDHT11);
 
-    xTaskCreate(taskDHT11, "DHT11", 128, NULL, 2, &handleDHT11);
-    xTaskCreate(taskOLED, "OLED", 512, NULL, 1, &handleOLED);
-    printf("StartScheduler \r\n");
-    vTaskStartScheduler();
-    /* USER CODE END 2 */
+	printf("Ready to start Scheduler \r\n");
+	vTaskStartScheduler();
+  /* USER CODE END 2 */
 
-    /* Init scheduler */
-    osKernelInitialize(); /* Call init function for freertos objects (in freertos.c) */
-    MX_FREERTOS_Init();
+  /* Init scheduler */
+  osKernelInitialize();  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
 
-    /* Start scheduler */
-    osKernelStart();
+  /* Start scheduler */
+  osKernelStart();
 
-    /* We should never get here as control is now taken by the scheduler */
-    /* Infinite loop */
-    /* USER CODE BEGIN WHILE */
-    while (1)
-    {
-        /* USER CODE END WHILE */
+  /* We should never get here as control is now taken by the scheduler */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
 
-        /* USER CODE BEGIN 3 */
-    }
-    /* USER CODE END 3 */
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
 }
 
 /**
