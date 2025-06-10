@@ -40,6 +40,7 @@
 #include "stdio.h"
 #include "stdbool.h"
 #include "string.h"
+#include "gps_neo6.h"
 
 /* USER CODE END Includes */
 
@@ -51,8 +52,6 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 QueueHandle_t queueDHT11;
-QueueHandle_t queueSwitch;
-QueueHandle_t queueMode;
 
 TaskHandle_t handleDHT11;
 TaskHandle_t handleST7789;
@@ -71,6 +70,8 @@ uint8_t uart_rx_buffer[UART_BUFFER_SIZE];
 uint8_t uart_rx_data;
 volatile uint16_t uart_rx_index = 0;
 volatile uint8_t uart_data_ready = 0;
+
+NEO6_State GpsData;
 
 /* USER CODE END PD */
 
@@ -131,10 +132,10 @@ void taskST7789(void *pvParm){
 	LCD_Fill(0, 0, 240, 240, WHITE);
 
 	while(1){
-		//vTaskDelay(1 / portTICK_RATE_MS);
 		vTaskDelay(5000 / portTICK_RATE_MS);
 		
-		printf("current_points: %d\r\n", env_points);
+		printf("current point: %d\r\n", env_points++);
+		/*
 		if (env_points < 500) {
 			LCD_ShowPicture(0,0,240,240, gImage_tree_1);
 		} 
@@ -147,6 +148,7 @@ void taskST7789(void *pvParm){
 		else {
 			env_points = 0;
 		}
+		*/
 	}
 }
 
@@ -166,65 +168,32 @@ void taskYL38()
       vTaskDelay(1000 / portTICK_RATE_MS);
   }
 }
-void taskGPS6MV2()
+void taskGPSRecv(void *pvParm)
 {
-		if(uart_data_ready)
-    {
-        printf("GPS6MV2: %s\r\n", uart_rx_buffer);
-        
-        uart_rx_index = 0;
-        uart_data_ready = 0;
-        memset(uart_rx_buffer, 0, UART_BUFFER_SIZE);
-    }
+	while(1){
+		vTaskDelay(1 / portTICK_RATE_MS);
+		NEO6_Task(&GpsData);
+	}
 }
 
-/****
-sw1, 2 -> rising edge
-sw3, 4 -> falling edge
-****/
+void taskGPSEval(void *pvParm)
+{
+	while(1){
+		vTaskDelay(500 / portTICK_RATE_MS);
+		
+		if(NEO6_IsFix(&GpsData))
+		{
+			printf("%.4f, %.4f\r\n", nmea_to_decimal(GpsData.Latitude), nmea_to_decimal(GpsData.Longitude));
+		}else {
+			printf("Await...\r\n");
+		}
+		
+	}
+}
+
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-    uint8_t button = 0;
-
-    switch (GPIO_Pin)
-    {
-    // sw1 PE3
-    case GPIO_PIN_3:
-    {
-        if (HAL_GPIO_ReadPin(SW1_GPIO_Port, SW1_Pin) == 1)
-        {
-					printf("Btn 1 clicked\r\n");
-					button = 0;
-					xQueueSendFromISR(queueMode, &button, NULL);
-        }
-        break;
-    }
-    // sw2 PE4
-    case GPIO_PIN_4:
-    {
-        if (HAL_GPIO_ReadPin(SW2_GPIO_Port, SW2_Pin) == 1)
-        {					
-					printf("Btn 2 clicked\r\n");
-					button = 1;
-					xQueueSendFromISR(queueMode, &button, NULL);
-        }
-        break;
-    }
-    // sw3 PE5
-    case GPIO_PIN_5:
-    {
-        if (HAL_GPIO_ReadPin(SW3_GPIO_Port, SW3_Pin) == 0)
-        {
-					printf("Btn 3 clicked\r\n");
-					button = 2;
-					xQueueSendFromISR(queueMode, &button, NULL);
-        }
-        break;
-    }
-    default:
-        printf("unknown irq \r\n");
-        break;
-    }
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -241,7 +210,9 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
         }
         
         HAL_UART_Receive_IT(&huart2, &uart_rx_data, 1);
-    }
+    } else if (huart == &huart6){
+				NEO6_ReceiveUartChar(&GpsData);
+		}
 }
 
 /* USER CODE END 0 */
@@ -278,17 +249,18 @@ int main(void)
   MX_USART3_UART_Init();
   MX_TIM2_Init();
   MX_USART2_UART_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
 	LCD_Init();
 	LCD_CS_Clr();
 	LCD_Address_Set(0,0,240,240);
-	queueMode = xQueueCreate(3, sizeof(uint8_t));
-	xTaskCreate(taskST7789, "LCD Display", 256, NULL, 3, &handleST7789);
-	xTaskCreate(taskDHT11, "DHT11", 256, NULL, 4, &handleDHT11);
-	xTaskCreate(taskYL38, "YL38", 256, NULL, 4, &handleYL38);
-	//xTaskCreate(taskGPS6MV2, "GPS6MV2", 1024, NULL, 4, &handleGPS6MV2);
-
-	printf("Ready to start Scheduler \r\n");
+	NEO6_Init(&GpsData, &huart6);
+	//xTaskCreate(taskST7789, "LCD Display", 256, NULL, 3, &handleST7789);
+	//xTaskCreate(taskDHT11, "DHT11", 256, NULL, 4, &handleDHT11);
+	//xTaskCreate(taskYL38, "YL38", 256, NULL, 4, &handleYL38);
+	xTaskCreate(taskGPSRecv, "GPSRecv", 1024, NULL, 4, NULL);
+	xTaskCreate(taskGPSEval, "GPSEval", 1024, NULL, 4, NULL);
+	//printf("Ready to start Scheduler \r\n");
 	vTaskStartScheduler();
   /* USER CODE END 2 */
 

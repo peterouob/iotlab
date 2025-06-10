@@ -9,6 +9,10 @@
 "lab2_oled_example\stm32f4xx_it.o"
 "lab2_oled_example\stm32f4xx_hal_msp.o"
 "lab2_oled_example\stm32f4xx_hal_timebase_tim.o"
+"lab2_oled_example\dht11.o"
+"lab2_oled_example\lcd.o"
+"lab2_oled_example\lcd_init.o"
+"lab2_oled_example\gps_neo6.o"
 "lab2_oled_example\stm32f4xx_hal_rcc.o"
 "lab2_oled_example\stm32f4xx_hal_rcc_ex.o"
 "lab2_oled_example\stm32f4xx_hal_flash.o"
@@ -38,9 +42,7 @@
 "lab2_oled_example\cmsis_os2.o"
 "lab2_oled_example\heap_4.o"
 "lab2_oled_example\port.o"
-"lab2_oled_example\dht11.o"
-"lab2_oled_example\lcd.o"
-"lab2_oled_example\lcd_init.o"
+"lab2_oled_example\retarget_io.o"
 --strict --scatter "lab2_oled_example\lab2_oled_example.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers
