@@ -1,0 +1,249 @@
+[
+    {
+        "id": "eaae6b9e47ed5e3c",
+        "type": "tab",
+        "label": "流程1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "9494b2d2bf8f7236",
+        "type": "mqtt in",
+        "z": "eaae6b9e47ed5e3c",
+        "name": "LoRaWAN uplink",
+        "topic": "application/10/device/1112131415161702/rx",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "754fd54c815a3424",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 280,
+        "y": 220,
+        "wires": [
+            [
+                "b9c7d61ba239d5d8"
+            ]
+        ]
+    },
+    {
+        "id": "bfa07508ed650c46",
+        "type": "mqtt out",
+        "z": "eaae6b9e47ed5e3c",
+        "name": "LoRaWAN downlink",
+        "topic": "application/10/device/1112131415161702/tx",
+        "qos": "0",
+        "retain": "true",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "754fd54c815a3424",
+        "x": 920,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "b9c7d61ba239d5d8",
+        "type": "function",
+        "z": "eaae6b9e47ed5e3c",
+        "name": "字串資料轉換",
+        "func": "let rawStr = msg.payload.data;\nlet data = Buffer.from(rawStr,'hex');\nmsg.payload = data.toString();\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 500,
+        "y": 220,
+        "wires": [
+            [
+                "b95a77ded94ea170"
+            ]
+        ]
+    },
+    {
+        "id": "e4365416506e7787",
+        "type": "function",
+        "z": "eaae6b9e47ed5e3c",
+        "name": "LoRaWAN DataFormat",
+        "func": "// 設定 LoRaWAN Downlink 參數\nlet fPort = 3;  // 自定義各筆資料所對應的Frame port\nlet hexData = msg.payload;  // 傳送的資料\n\n// 建立 Downlink JSON 格式\nmsg.payload = {\n    \"confirmed\": false, //決定裝置是否要做Ack\n    \"fPort\": fPort,\n    \"data\":  hexData\n};\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 420,
+        "wires": [
+            [
+                "bfa07508ed650c46"
+            ]
+        ]
+    },
+    {
+        "id": "2ce0bc916ae1f047",
+        "type": "switch",
+        "z": "eaae6b9e47ed5e3c",
+        "name": "溫濕度資料判定",
+        "property": "parts.index",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "1",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 900,
+        "y": 220,
+        "wires": [
+            [
+                "c30ff3262ad871da"
+            ],
+            [
+                "767333c7bf18ef5f"
+            ]
+        ]
+    },
+    {
+        "id": "b95a77ded94ea170",
+        "type": "split",
+        "z": "eaae6b9e47ed5e3c",
+        "name": "分割字串",
+        "splt": ",",
+        "spltType": "str",
+        "arraySplt": "2",
+        "arraySpltType": "len",
+        "stream": false,
+        "addname": "",
+        "property": "payload",
+        "x": 700,
+        "y": 220,
+        "wires": [
+            [
+                "2ce0bc916ae1f047"
+            ]
+        ]
+    },
+    {
+        "id": "c30ff3262ad871da",
+        "type": "ui_gauge",
+        "z": "eaae6b9e47ed5e3c",
+        "name": "",
+        "group": "03afd104a77b606e",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "溫度",
+        "label": "℃",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 1090,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "767333c7bf18ef5f",
+        "type": "ui_gauge",
+        "z": "eaae6b9e47ed5e3c",
+        "name": "",
+        "group": "03afd104a77b606e",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "濕度",
+        "label": "%",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#00b500",
+            "#e6e600",
+            "#ca3838"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "diff": false,
+        "className": "",
+        "x": 1090,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "754fd54c815a3424",
+        "type": "mqtt-broker",
+        "name": "broker",
+        "broker": "mqtt.yuntech-iot.net",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "03afd104a77b606e",
+        "type": "ui_group",
+        "name": "DHT11",
+        "tab": "3af86b4e1c475e52",
+        "order": 1,
+        "disp": true,
+        "width": "8",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "3af86b4e1c475e52",
+        "type": "ui_tab",
+        "name": "Lab8 - Node-RED",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
