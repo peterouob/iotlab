@@ -45,10 +45,10 @@ lab2_oled_example/main.o: ..\Core\Src\main.c ..\Core\Inc\main.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\list.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\CMSIS_RTOS_V2\cmsis_os2.h \
   ..\Core\Inc\i2c.h ..\Core\Inc\tim.h ..\Core\Inc\usart.h \
-  ..\Core\Inc\gpio.h \
+  ..\Core\Inc\gpio.h C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdio.h \
+  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdbool.h \
+  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\string.h \
   ..\Middlewares\Third_Party\FreeRTOS\Source\include\queue.h \
   ..\Hardware\dht11.h ..\Hardware\lcd.h ..\Hardware\lcd_init.h \
-  ..\Media\tree_1.h ..\Media\tree_2.h ..\Media\tree_3.h \
-  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdio.h \
-  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdbool.h \
-  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\string.h ..\Hardware\gps_neo6.h
+  ..\Hardware\gps_neo6.h ..\Hardware\max30102_for_stm32_hal.h \
+  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdlib.h

@@ -1,8 +1,12 @@
-double myFreq = 923000000; 
+/*************************************
+   This example is from https://github.com/Kongduino/RUI3_LoRa_P2P_PING_PONG
+ *************************************/
+
+long startTime;
+bool rx_done = false;
+double myFreq = 869000000;
 uint16_t sf = 12, bw = 0, cr = 0, preamble = 8, txPower = 22;
-
-char slaveReply[] = "Pong from Slave";
-
+uint8_t recv_buf[20];
 void hexDump(uint8_t * buf, uint16_t len) {
   char alphabet[17] = "0123456789abcdef";
   Serial.print(F("   +------------------------------------------------+ +----------------+\r\n"));
@@ -31,35 +35,49 @@ void hexDump(uint8_t * buf, uint16_t len) {
   Serial.print(F("   +------------------------------------------------+ +----------------+\r\n"));
 }
 
+/*
+  typedef struct rui_lora_p2p_revc {
+  // Pointer to the received data stream
+  uint8_t *Buffer;
+  // Size of the received data stream
+  uint8_t BufferSize;
+  // Rssi of the received packet
+  int16_t Rssi;
+  // Snr of the received packet
+  int8_t Snr;
+  } rui_lora_p2p_recv_t;
+*/
 void recv_cb(rui_lora_p2p_recv_t data) {
+  rx_done = true;
   if (data.BufferSize == 0) {
+    Serial.println("Empty buffer.");
     return;
   }
-  Serial.println("\n<<< Message from Master Received >>>");
+  strcpy((char*) recv_buf, (char*) data.Buffer);
   char buff[92];
   sprintf(buff, "Incoming message, length: %d, RSSI: %d, SNR: %d", data.BufferSize, data.Rssi, data.Snr);
   Serial.println(buff);
+  Serial1.println((char*) recv_buf);
   hexDump(data.Buffer, data.BufferSize);
-
-  Serial.println(">>> Sending Slave Pong <<<");
-  bool send_result = api.lorawan.psend(sizeof(slaveReply) - 1, (uint8_t*)slaveReply);
-  if (!send_result) {
-    Serial.println("P2P send reply FAILED");
-  }
 }
 
 void send_cb(void) {
-  Serial.println("Slave reply sent. Returning to listening mode.");
-  api.lorawan.precv(65534); 
+  Serial.printf("P2P set Rx mode %s\r\n", api.lorawan.precv(65534) ? "Success" : "Fail");
 }
 
 void setup() {
-  Serial.begin(115200);
-  while(!Serial); 
-
-  Serial.println("RAK P2P Slave Node");
+  Serial.begin(115200, RAK_AT_MODE);
+  Serial1.begin(115200, RAK_CUSTOM_MODE); //UART1 OPEN
+  Serial.println("RAKwireless LoRaWan P2P Example");
   Serial.println("------------------------------------------------------");
-
+  delay(2000);
+  startTime = millis();
+  Serial.println("P2P Start");
+  //Serial.printf("Hardware ID: %s\r\n", api.system.chipId.get().c_str());
+  //Serial.printf("Model ID: %s\r\n", api.system.modelId.get().c_str());
+  //Serial.printf("RUI API Version: %s\r\n", api.system.apiVersion.get().c_str());
+  //Serial.printf("Firmware Version: %s\r\n", api.system.firmwareVersion.get().c_str());
+  //Serial.printf("AT Command Version: %s\r\n", api.system.cliVersion.get().c_str());
   Serial.printf("Set Node device work mode %s\r\n", api.lorawan.nwm.set(0) ? "Success" : "Fail");
   Serial.printf("Set P2P mode frequency %3.3f: %s\r\n", (myFreq / 1e6), api.lorawan.pfreq.set(myFreq) ? "Success" : "Fail");
   Serial.printf("Set P2P mode spreading factor %d: %s\r\n", sf, api.lorawan.psf.set(sf) ? "Success" : "Fail");
@@ -67,13 +85,39 @@ void setup() {
   Serial.printf("Set P2P mode code rate 4/%d: %s\r\n", (cr + 5), api.lorawan.pcr.set(0) ? "Success" : "Fail");
   Serial.printf("Set P2P mode preamble length %d: %s\r\n", preamble, api.lorawan.ppl.set(8) ? "Success" : "Fail");
   Serial.printf("Set P2P mode tx power %d: %s\r\n", txPower, api.lorawan.ptp.set(22) ? "Success" : "Fail");
-  
   api.lorawan.registerPRecvCallback(recv_cb);
   api.lorawan.registerPSendCallback(send_cb);
-
-  Serial.println("Setup Complete. Listening for messages...");
-  api.lorawan.precv(65534);
+  Serial.printf("P2P set Rx mode %s\r\n", api.lorawan.precv(65534) ? "Success" : "Fail");
+  // let's kick-start things by waiting 3 seconds.
 }
 
 void loop() {
+  uint8_t payload[] = "payload";
+  bool send_result = false;
+  //uint8_t buf[20];
+  // int recv = -1;
+  if (rx_done) {
+    //Serial.println("hello");
+    rx_done = false;
+    // int idx = 0;
+    // while ((recv = Serial1.read()) != -1)
+    // {
+    //   buf[idx] = recv;
+    //   idx++;
+    // }
+      
+    // buf[idx] = '\0';
+    // if (idx)
+    //   Serial.println((char*) buf);
+
+    //uint8_t len = strlen((char*) buf) * sizeof(char);
+    //while (!send_result) {
+    //  delay(1000);
+    //  Serial.printf("Set P2P to Tx mode %s\r\n", api.lorawan.precv(0) ? "Success" : "Fail");
+    //  send_result = api.lorawan.psend(strlen((char*) recv_buf), recv_buf);
+    //  Serial.printf("P2P send %s\r\n", send_result ? "Success" : "Fail");
+    //}
+  }
+  delay(500);
 }
+

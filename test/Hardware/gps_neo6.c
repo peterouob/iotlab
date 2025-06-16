@@ -13,6 +13,7 @@
 #include "gps_neo6.h"
 #include "string.h" // string manipulations
 #include "stdlib.h" // atoi()
+#include <stdio.h>
 
 volatile uint8_t UartReceivedChar;
 

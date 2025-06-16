@@ -1,4 +1,6 @@
-lab2_oled_example/gps_neo6.o: ..\Hardware\gps_neo6.c ..\Core\Inc\main.h \
+lab2_oled_example/max30102_for_stm32_hal.o: \
+  ..\Hardware\max30102_for_stm32_hal.c \
+  ..\Hardware\max30102_for_stm32_hal.h ..\Core\Inc\main.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal.h \
   ..\Core\Inc\stm32f4xx_hal_conf.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_rcc.h \
@@ -33,6 +35,6 @@ lab2_oled_example/gps_neo6.o: ..\Hardware\gps_neo6.c ..\Core\Inc\main.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_tim_ex.h \
   ..\Drivers\STM32F4xx_HAL_Driver\Inc\stm32f4xx_hal_uart.h \
-  ..\Hardware\gps_neo6.h C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\string.h \
+  C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\string.h \
   C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdlib.h \
   C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\stdio.h

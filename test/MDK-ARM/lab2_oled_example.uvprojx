@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F429xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;..\Hardware;..\Media</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;..\Hardware</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -445,6 +445,11 @@
               <FilePath>..\Hardware\dht11.c</FilePath>
             </File>
             <File>
+              <FileName>gps_neo6.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Hardware\gps_neo6.c</FilePath>
+            </File>
+            <File>
               <FileName>lcd.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Hardware\lcd.c</FilePath>
@@ -455,9 +460,9 @@
               <FilePath>..\Hardware\lcd_init.c</FilePath>
             </File>
             <File>
-              <FileName>gps_neo6.c</FileName>
+              <FileName>max30102_for_stm32_hal.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\Hardware\gps_neo6.c</FilePath>
+              <FilePath>..\Hardware\max30102_for_stm32_hal.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -26,6 +26,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "stdio.h"
+#include "stdbool.h"
+#include "string.h"
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -33,14 +37,8 @@
 #include "lcd.h"
 #include "lcd_init.h"
 
-#include "tree_1.h"
-#include "tree_2.h"
-#include "tree_3.h"
-
-#include "stdio.h"
-#include "stdbool.h"
-#include "string.h"
 #include "gps_neo6.h"
+#include "max30102_for_stm32_hal.h"
 
 /* USER CODE END Includes */
 
@@ -51,27 +49,22 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-QueueHandle_t queueDHT11;
 
-TaskHandle_t handleDHT11;
-TaskHandle_t handleST7789;
-TaskHandle_t handleYL38;
-TaskHandle_t handleGPS6MV2;
-
-struct dht11
-{
-    float Temp;
-    float Humi;
-};
-struct dht11 dht11DATA;
 
 #define UART_BUFFER_SIZE 256
+#define BC_INTERFACE_MSG_LEN 11
+
 uint8_t uart_rx_buffer[UART_BUFFER_SIZE];
 uint8_t uart_rx_data;
 volatile uint16_t uart_rx_index = 0;
 volatile uint8_t uart_data_ready = 0;
 
+volatile uint8_t lora_tx_ready = 1;
+
 NEO6_State GpsData;
+max30102_t max30102;
+
+uint32_t max_heart_rate = 0;
 
 /* USER CODE END PD */
 
@@ -96,82 +89,70 @@ void MX_FREERTOS_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-/****
-DHT11GetData
-****/
-
-int env_points = 0;
-void taskDHT11(void *pvParm)
-{
-    while (1)
-    {
-				printf("In DHT11\r\n");
-        if (DHT11GetData(&dht11DATA.Humi, &dht11DATA.Temp) == 0)
-        {
-           //xQueueSend(queueDHT11, &dht11DATA, NULL);
-           printf("Temp:%.1f C", dht11DATA.Temp);
-           printf(",Humi:%.1f %%\r\n", dht11DATA.Humi);
-        }
-
-				if (dht11DATA.Humi > 60){
-					 env_points = env_points + 100;
-				} else
-				{
-					 HAL_GPIO_WritePin(LED_PB14_GPIO_Port, LED_PB14_Pin, 0);
-				}
-
-        vTaskDelay(3000 / portTICK_RATE_MS);
-    }
-}
 void taskST7789(void *pvParm){
-	uint8_t button = 255;
-	uint8_t update = 0;
-	int idx = 0;
-	uint16_t tick = 0;
-
 	LCD_Fill(0, 0, 240, 240, WHITE);
+	
+	uint8_t str_id[] = "B11117054";
+	uint8_t str_name[] = "Hsu Zhi-Dong";
+	uint8_t str_phone[] = "0902-396-782";
 
+	LCD_ShowString(10, 100, str_id, WHITE, BLACK, 32, 0);
+	LCD_ShowString(10, 135, str_name, WHITE, BLACK, 32, 0);
+	LCD_ShowString(10, 170, str_phone, WHITE, BLACK, 32, 0);
+	
 	while(1){
 		vTaskDelay(5000 / portTICK_RATE_MS);
-		
-		printf("current point: %d\r\n", env_points++);
-		/*
-		if (env_points < 500) {
-			LCD_ShowPicture(0,0,240,240, gImage_tree_1);
-		} 
-		else if (env_points < 1000) {
-			LCD_ShowPicture(0,0,240,240, gImage_tree_2);
-		}
-		else if (env_points < 1500){
-			LCD_ShowPicture(0,0,240,240, gImage_tree_3);
-		}
-		else {
-			env_points = 0;
-		}
-		*/
 	}
 }
 
-void taskYL38()
+void taskLora(void *pvParm)
 {
-	GPIO_PinState do_state;
-  char buffer[50];
-  
-  while(1)
-  {
-      do_state = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_5);
-      
-      sprintf(buffer, "DO state: %s\r\n", 
-              do_state == GPIO_PIN_SET ? "dry" : "wet");
-      printf("%s\n", buffer);
-      
-      vTaskDelay(1000 / portTICK_RATE_MS);
-  }
+	HAL_UART_Receive_IT(&huart2, &uart_rx_data, 1);
+	uint16_t message_len = 15;
+	uint8_t message[message_len];
+	memset(message, 0, message_len);
+	
+	lora_tx_ready = 1;
+
+	while (1){
+		vTaskDelay(1000 / portTICK_RATE_MS);
+		if (lora_tx_ready == 0){
+			continue;
+		}
+		
+		message[0] = '#';
+		
+		if(NEO6_IsFix(&GpsData))
+		{
+			message[1] = 1;
+			float lat = nmea_to_decimal(GpsData.Latitude);
+			float lon = nmea_to_decimal(GpsData.Longitude);
+			memcpy(message + 2, &lat, 4);
+			memcpy(message + 6, &lon, 4);
+		}else {
+			message[1] = 0;
+			memset(message + 2, 0, 8);
+		}
+		
+		if (max_heart_rate != 0) {
+			message[10] = 1;
+			memcpy(message + 11, &max_heart_rate, 4);
+		}else {
+			message[10] = 0;
+			memset(message + 11, 0, 4);
+		}
+		
+		HAL_StatusTypeDef status = HAL_UART_Transmit(&huart2, message, message_len, HAL_MAX_DELAY);
+		lora_tx_ready = 0;
+		printf("[Lora] Written %d bytes\r\n", message_len);
+
+	}
 }
+
 void taskGPSRecv(void *pvParm)
 {
 	while(1){
-		vTaskDelay(1 / portTICK_RATE_MS);
+		vTaskDelay(10 / portTICK_RATE_MS);
 		NEO6_Task(&GpsData);
 	}
 }
@@ -183,37 +164,82 @@ void taskGPSEval(void *pvParm)
 		
 		if(NEO6_IsFix(&GpsData))
 		{
-			printf("%.4f, %.4f\r\n", nmea_to_decimal(GpsData.Latitude), nmea_to_decimal(GpsData.Longitude));
+			printf("[GPSModule] Lat: %.4f, Lon: %.4f\r\n", nmea_to_decimal(GpsData.Latitude), nmea_to_decimal(GpsData.Longitude));
 		}else {
-			printf("Await...\r\n");
+			printf("[GPSModule] Waiting for the signal...\r\n");
 		}
-		
 	}
 }
+
+void taskMax30102Int(void *pvParm){
+	while(1){
+		vTaskDelay(10 / portTICK_RATE_MS);
+		if (max30102_has_interrupt(&max30102))
+    {
+				printf("[MAX30102] Has Int\r\n");
+				max30102_interrupt_handler(&max30102);
+    }
+	}
+}
+
+void taskMax30102(void* pvParm){
+	
+	max30102_set_mode(&max30102, max30102_heart_rate);
+
+	printf("[MAX30102] Set Mode\r\n");
+	
+	int8_t hr_valid = 0;
+	int8_t spo2_valid = 0;
+	
+	int32_t hr_val = 0;
+	int32_t spo2_val = 0;
+	
+	while(1){
+		for (int i = 0; i < BUFFER_SIZE; i++)
+    {
+        max30102_read_fifo(&max30102);
+				vTaskDelay(10 / portTICK_RATE_MS);
+		}
+		
+		maxim_heart_rate_and_oxygen_saturation(max30102._ir_samples, 100, max30102._red_samples, &spo2_val, &spo2_valid, &hr_val, &hr_valid); 
+		if (hr_valid){
+			max_heart_rate = hr_val;
+		}
+		vTaskDelay(1000 / portTICK_RATE_MS);
+	}
+} 
+
 
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
+		if (GPIO_Pin == GPIO_PIN_15){
+			printf("[MAX30102] Int\r\n");
+			max30102_on_interrupt(&max30102);
+		}
 }
+
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if(huart->Instance == USART2)
     {
-        uart_rx_buffer[uart_rx_index] = uart_rx_data;
+			  uart_rx_buffer[uart_rx_index] = uart_rx_data;
         uart_rx_index++;
         
         if(uart_rx_data == '\n' || uart_rx_data == '\r')
         {
             uart_rx_buffer[uart_rx_index] = '\0';
             uart_data_ready = 1;
+						lora_tx_ready = 1;
         }
-        
         HAL_UART_Receive_IT(&huart2, &uart_rx_data, 1);
-    } else if (huart == &huart6){
+    }	else if (huart->Instance == USART6){
 				NEO6_ReceiveUartChar(&GpsData);
 		}
 }
+
+
 
 /* USER CODE END 0 */
 
@@ -250,17 +276,45 @@ int main(void)
   MX_TIM2_Init();
   MX_USART2_UART_Init();
   MX_USART6_UART_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
+	printf("[Main] System Init\r\n");
+	
 	LCD_Init();
 	LCD_CS_Clr();
 	LCD_Address_Set(0,0,240,240);
 	NEO6_Init(&GpsData, &huart6);
-	//xTaskCreate(taskST7789, "LCD Display", 256, NULL, 3, &handleST7789);
-	//xTaskCreate(taskDHT11, "DHT11", 256, NULL, 4, &handleDHT11);
-	//xTaskCreate(taskYL38, "YL38", 256, NULL, 4, &handleYL38);
-	xTaskCreate(taskGPSRecv, "GPSRecv", 1024, NULL, 4, NULL);
-	xTaskCreate(taskGPSEval, "GPSEval", 1024, NULL, 4, NULL);
-	//printf("Ready to start Scheduler \r\n");
+
+
+	max30102_init(&max30102, &hi2c2);
+	max30102_reset(&max30102);
+	max30102_clear_fifo(&max30102);
+	// FIFO configurations
+	max30102_set_fifo_config(&max30102, max30102_smp_ave_8, 1, 7);
+	// LED configurations
+  max30102_set_led_pulse_width(&max30102, max30102_pw_16_bit);
+  max30102_set_adc_resolution(&max30102, max30102_adc_2048);
+  max30102_set_sampling_rate(&max30102, max30102_sr_800);
+  max30102_set_led_current_1(&max30102, 6.2);
+  max30102_set_led_current_2(&max30102, 6.2);
+	
+	max30102_set_die_temp_en(&max30102, 1);
+  max30102_set_die_temp_rdy(&max30102, 1);
+	
+	uint8_t en_reg[2] = {0};
+  max30102_read(&max30102, 0x00, en_reg, 1);
+	
+	xTaskCreate(taskGPSRecv, "GPSRecv", 512, NULL, 4, NULL);
+	xTaskCreate(taskMax30102Int, "taskMax30102Int", 512, NULL, 4, NULL);
+	
+	xTaskCreate(taskGPSEval, "GPSEval", 512, NULL, 4, NULL);
+	xTaskCreate(taskLora, "taskLora", 1024, NULL, 5, NULL);
+	
+	xTaskCreate(taskMax30102, "taskMax30102", 512, NULL, 6, NULL);
+	
+	xTaskCreate(taskST7789, "LCD Display", 256, NULL, 10, NULL);
+
+	printf("[Main] Starting scheduler...\r\n");
 	vTaskStartScheduler();
   /* USER CODE END 2 */
 
